@@ -507,7 +507,7 @@ export interface ApiHabitHabit extends Struct.CollectionTypeSchema {
     >;
     publishedAt: Schema.Attribute.DateTime;
     reminderTime: Schema.Attribute.String;
-    scheduleWeekdays: Schema.Attribute.JSON;
+    scheduledWeekdays: Schema.Attribute.JSON;
     startDate: Schema.Attribute.Date & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
