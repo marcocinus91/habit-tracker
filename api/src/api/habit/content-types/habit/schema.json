@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "habits",
+  "info": {
+    "singularName": "habit",
+    "pluralName": "habits",
+    "displayName": "Habit"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "emoji": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    },
+    "scheduleWeekdays": {
+      "type": "json"
+    },
+    "reminderTime": {
+      "type": "string"
+    },
+    "startDate": {
+      "type": "date",
+      "required": true
+    },
+    "archived": {
+      "type": "boolean",
+      "default": false
+    },
+    "owner": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "habits"
+    },
+    "habit_logs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::habit-log.habit-log",
+      "mappedBy": "habit"
+    }
+  }
+}
