@@ -1,3 +1,4 @@
+import 'package:app/domain/streak_calculator.dart';
 import 'package:flutter/material.dart';
 
 import 'data/habit_api.dart';
@@ -32,22 +33,45 @@ class TodayScreen extends StatefulWidget {
 
 class _TodayScreenState extends State<TodayScreen> {
   static const _token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzIiwic2Vzc2lvbklkIjoiNDgwOGUxMjBkMDgwMjIwMzFmMTQ5OWU1Y2Y0MDkzMDQiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzkwOTQ5ODcwLCJleHAiOjE3OTA5NTA0NzB9.ML1KsaKWgm-CUYuItJTgrsPS6LUyv4kU7Lum_l3neJM';
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzIiwic2Vzc2lvbklkIjoiYWNjNzU1NTY1OTljMTk1ZDE5MzBhOTU1MzAwYTkyMWIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzkwOTUyMjE1LCJleHAiOjE3OTA5NTI4MTV9.BboQZssXLGb8KgqqNBoS2tq3DRbLvwdDDxNyjH1gcJw';
 
   late final HabitApi _api = HabitApi(_token);
-  late Future<List<Habit>> _habitsFuture;
+  late Future<List<_HabitWithStreak>> _habitsFuture;
 
   @override
   void initState() {
     super.initState();
-    _habitsFuture = _api.fetchHabit();
+    _habitsFuture = _loadHabits();
+  }
+
+  Future<List<_HabitWithStreak>> _loadHabits() async {
+    final habits = await _api.fetchHabits();
+
+    final results = <_HabitWithStreak>[];
+    for (final habit in habits) {
+      final dates = await _api.fetchLogDates(habit.id);
+      final streak = calculateStreak(
+        completedDates: dates,
+        scheduledWeekdays: habit.scheduledWeekdays,
+        today: DateTime.now(),
+      );
+      results.add(_HabitWithStreak(habit: habit, streak: streak));
+    }
+    return results;
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _habitsFuture = _loadHabits();
+    });
+    await _habitsFuture;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Oggi')),
-      body: FutureBuilder(
+      body: FutureBuilder<List<_HabitWithStreak>>(
         future: _habitsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -63,28 +87,39 @@ class _TodayScreenState extends State<TodayScreen> {
             );
           }
 
-          final habits = snapshot.data ?? [];
-          if (habits.isEmpty) {
+          final items = snapshot.data ?? [];
+          if (items.isEmpty) {
             return const Center(
               child: Text('Nessun habit ancora. Creane uno!'),
             );
           }
 
-          return ListView.builder(
-            itemCount: habits.length,
-            itemBuilder: (context, index) {
-              final habit = habits[index];
-              return ListTile(
-                leading: Text(
-                  habit.emoji,
-                  style: const TextStyle(fontSize: 24),
-                ),
-                title: Text(habit.name),
-              );
-            },
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.builder(
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return ListTile(
+                  leading: Text(
+                    item.habit.emoji,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                  title: Text(item.habit.name),
+                  trailing: Text('🔥 ${item.streak}'),
+                );
+              },
+            ),
           );
         },
       ),
     );
   }
+}
+
+class _HabitWithStreak {
+  final Habit habit;
+  final int streak;
+
+  _HabitWithStreak({required this.habit, required this.streak});
 }
