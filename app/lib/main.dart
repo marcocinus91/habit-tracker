@@ -32,8 +32,7 @@ class TodayScreen extends StatefulWidget {
 }
 
 class _TodayScreenState extends State<TodayScreen> {
-  static const _token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzIiwic2Vzc2lvbklkIjoiYWNjNzU1NTY1OTljMTk1ZDE5MzBhOTU1MzAwYTkyMWIiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzkwOTUyMjE1LCJleHAiOjE3OTA5NTI4MTV9.BboQZssXLGb8KgqqNBoS2tq3DRbLvwdDDxNyjH1gcJw';
+  static const _token = '';
 
   late final HabitApi _api = HabitApi(_token);
   late Future<List<_HabitWithStreak>> _habitsFuture;
