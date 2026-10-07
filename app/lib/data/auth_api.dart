@@ -2,9 +2,12 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
+import '../domain/auth_tokens.dart';
+
 class AuthException implements Exception {
   final String message;
-  AuthException(this.message);
+  final int? statusCode;
+  AuthException(this.message, {this.statusCode});
 
   @override
   String toString() => message;
@@ -13,40 +16,40 @@ class AuthException implements Exception {
 class AuthApi {
   static const _baseUrl = 'http://localhost:1337/api';
 
-  Future<String> login({
-    required String email,
-    required String password,
-  }) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/auth/local'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'identifier': email, 'password': password}),
-    );
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-
-    if (response.statusCode != 200) {
-      final message =
-          (body['error'] as Map<String, dynamic>?)?['message'] as String?;
-      throw AuthException(message ?? 'Accesso non riuscito');
-    }
-
-    return body['jwt'] as String;
+  Future<AuthTokens> login({required String email, required String password}) {
+    return _post('/auth/local', {
+      'identifier': email,
+      'password': password,
+    }, 'Accesso non riuscito');
   }
 
-  Future<String> register({
+  Future<AuthTokens> register({
     required String username,
     required String email,
     required String password,
-  }) async {
+  }) {
+    return _post('/auth/local/register', {
+      'username': username,
+      'email': email,
+      'password': password,
+    }, 'Registrazione non riuscita');
+  }
+
+  Future<AuthTokens> refresh(String refreshToken) {
+    return _post('/auth/refresh', {
+      'refreshToken': refreshToken,
+    }, 'Sessione scaduta');
+  }
+
+  Future<AuthTokens> _post(
+    String path,
+    Map<String, dynamic> payload,
+    String fallbackMessage,
+  ) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/auth/local/register'),
+      Uri.parse('$_baseUrl$path'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'username': username,
-        'email': email,
-        'password': password,
-      }),
+      body: jsonEncode(payload),
     );
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -54,9 +57,12 @@ class AuthApi {
     if (response.statusCode != 200) {
       final message =
           (body['error'] as Map<String, dynamic>?)?['message'] as String?;
-      throw AuthException(message ?? 'Registrazione non riuscita');
+      throw AuthException(
+        message ?? fallbackMessage,
+        statusCode: response.statusCode,
+      );
     }
 
-    return body['jwt'] as String;
+    return AuthTokens.fromJson(body);
   }
 }
