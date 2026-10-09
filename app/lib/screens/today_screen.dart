@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/habit_api.dart';
 import '../domain/habit.dart';
 import '../domain/streak_calculator.dart';
+import '../state/providers.dart';
 
-class TodayScreen extends StatefulWidget {
-  final String accessToken;
-  const TodayScreen({super.key, required this.accessToken});
+class TodayScreen extends ConsumerStatefulWidget {
+  const TodayScreen({super.key});
 
   @override
-  State<TodayScreen> createState() => _TodayScreenState();
+  ConsumerState<TodayScreen> createState() => _TodayScreenState();
 }
 
-class _TodayScreenState extends State<TodayScreen> {
-  late final HabitApi _api = HabitApi(widget.accessToken);
+class _TodayScreenState extends ConsumerState<TodayScreen> {
+  late final HabitApi _api = ref.read(habitApiProvider);
   late Future<List<_HabitWithStreak>> _habitsFuture;
 
   @override
@@ -48,7 +49,15 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Oggi')),
+      appBar: AppBar(
+        title: const Text('Oggi'),
+        actions: [
+          IconButton(
+            onPressed: () => ref.read(authProvider.notifier).logout(),
+            icon: const Icon(Icons.logout),
+          ),
+        ],
+      ),
       body: FutureBuilder<List<_HabitWithStreak>>(
         future: _habitsFuture,
         builder: (context, snapshot) {

@@ -1,23 +1,20 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import 'package:app/data/api_client.dart';
 
 import '../domain/habit.dart';
 
 class HabitApi {
-  static const _baseUrl = 'http://localhost:1337/api';
-  final String token;
-
-  HabitApi(this.token);
+  final ApiClient _client;
+  HabitApi(this._client);
 
   Future<List<Habit>> fetchHabits() async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/habits'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    final response = await _client.get('/habits');
 
     if (response.statusCode != 200) {
-      throw Exception('Errore ${response.statusCode}');
+      throw Exception(
+        'Errore ${response.statusCode} su ${response.request?.url}',
+      );
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -26,13 +23,12 @@ class HabitApi {
   }
 
   Future<List<String>> fetchLogDates(String habitId) async {
-    final response = await http.get(
-      Uri.parse('$_baseUrl/habit-logs?habit=$habitId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
+    final response = await _client.get('/habit-logs?habit=$habitId');
 
     if (response.statusCode != 200) {
-      throw Exception('Errore ${response.statusCode}');
+      throw Exception(
+        'Errore ${response.statusCode} su ${response.request?.url}',
+      );
     }
 
     final body = jsonDecode(response.body) as Map<String, dynamic>;

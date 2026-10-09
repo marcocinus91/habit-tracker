@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../data/auth_api.dart';
 import '../data/token_storage.dart';
-import 'today_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -48,12 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
       // Svuota lo stack di navigazione: dopo la registrazione non si torna indietro al login
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => TodayScreen(accessToken: tokens.accessToken),
-        ),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {

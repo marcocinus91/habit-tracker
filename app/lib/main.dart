@@ -1,9 +1,9 @@
+import 'package:app/screens/auth_gate.dart';
 import 'package:flutter/material.dart';
-
-import 'screens/login_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
-  runApp(const HabitTrackerApp());
+  runApp(const ProviderScope(child: HabitTrackerApp()));
 }
 
 class HabitTrackerApp extends StatelessWidget {
@@ -17,7 +17,7 @@ class HabitTrackerApp extends StatelessWidget {
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4F8EF7)),
       ),
-      home: const LoginScreen(),
+      home: const AuthGate(),
     );
   }
 }

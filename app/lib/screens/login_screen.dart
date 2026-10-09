@@ -1,22 +1,21 @@
-import 'package:app/data/auth_api.dart';
-import 'package:app/data/token_storage.dart';
-import 'package:app/screens/register_screen.dart';
-import 'package:app/screens/today_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class LoginScreen extends StatefulWidget {
+import '../data/auth_api.dart';
+import '../state/providers.dart';
+import 'register_screen.dart';
+
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authApi = AuthApi();
-  final _storage = TokenStorage();
 
   bool _loading = false;
   String? _error;
@@ -37,18 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final tokens = await _authApi.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      await _storage.save(tokens);
-
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => TodayScreen(accessToken: tokens.accessToken),
-        ),
-      );
+      await ref
+          .read(authProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text);
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
