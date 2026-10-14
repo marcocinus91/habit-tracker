@@ -1,3 +1,4 @@
+import 'package:app/domain/habit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/api_client.dart';
@@ -98,3 +99,28 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 final habitApiProvider = Provider(
   (ref) => HabitApi(ref.watch(apiClientProvider)),
 );
+
+final isLoggedInProvider = Provider<bool>(
+  (ref) => ref.watch(authProvider.select((s) => s.value != null)),
+);
+
+class HabitsNotifier extends AsyncNotifier<List<Habit>> {
+  @override
+  Future<List<Habit>> build() async {
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    if (!isLoggedIn) return [];
+    return ref.read(habitApiProvider).fetchHabits();
+  }
+}
+
+final habitsProvider = AsyncNotifierProvider<HabitsNotifier, List<Habit>>(
+  HabitsNotifier.new,
+);
+
+final habitLogDatesProvider = FutureProvider.family<List<String>, String>((
+  ref,
+  habitId,
+) {
+  ref.watch(isLoggedInProvider);
+  return ref.read(habitApiProvider).fetchLogDates(habitId);
+});

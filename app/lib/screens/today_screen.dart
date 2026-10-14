@@ -1,93 +1,42 @@
+import 'package:app/domain/streak_calculator.dart';
+import 'package:app/state/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/habit_api.dart';
 import '../domain/habit.dart';
-import '../domain/streak_calculator.dart';
-import '../state/providers.dart';
 
-class TodayScreen extends ConsumerStatefulWidget {
+class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
   @override
-  ConsumerState<TodayScreen> createState() => _TodayScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final habitsAsync = ref.watch(habitsProvider);
 
-class _TodayScreenState extends ConsumerState<TodayScreen> {
-  late final HabitApi _api = ref.read(habitApiProvider);
-  late Future<List<_HabitWithStreak>> _habitsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _habitsFuture = _loadHabits();
-  }
-
-  Future<List<_HabitWithStreak>> _loadHabits() async {
-    final habits = await _api.fetchHabits();
-
-    final results = <_HabitWithStreak>[];
-    for (final habit in habits) {
-      final dates = await _api.fetchLogDates(habit.id);
-      final streak = calculateStreak(
-        completedDates: dates,
-        scheduledWeekdays: habit.scheduledWeekdays,
-        today: DateTime.now(),
-      );
-      results.add(_HabitWithStreak(habit: habit, streak: streak));
-    }
-    return results;
-  }
-
-  Future<void> _refresh() async {
-    setState(() {
-      _habitsFuture = _loadHabits();
-    });
-    await _habitsFuture;
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Oggi')),
-      body: FutureBuilder<List<_HabitWithStreak>>(
-        future: _habitsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text('Errore nel caricamento: ${snapshot.error}'),
-              ),
-            );
-          }
-
-          final items = snapshot.data ?? [];
-          if (items.isEmpty) {
+      body: habitsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text('Errore nel caricamento: $error'),
+          ),
+        ),
+        data: (habits) {
+          if (habits.isEmpty) {
             return const Center(
               child: Text('Nessun habit ancora. Creane uno!'),
             );
           }
 
           return RefreshIndicator(
-            onRefresh: _refresh,
+            onRefresh: () async {
+              ref.invalidate(habitLogDatesProvider);
+              await ref.refresh(habitsProvider.future);
+            },
             child: ListView.builder(
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return ListTile(
-                  leading: Text(
-                    item.habit.emoji,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  title: Text(item.habit.name),
-                  trailing: Text('🔥 ${item.streak}'),
-                );
-              },
+              itemCount: habits.length,
+              itemBuilder: (context, index) => _HabitTile(habit: habits[index]),
             ),
           );
         },
@@ -96,9 +45,31 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 }
 
-class _HabitWithStreak {
+class _HabitTile extends ConsumerWidget {
   final Habit habit;
-  final int streak;
+  const _HabitTile({required this.habit});
 
-  _HabitWithStreak({required this.habit, required this.streak});
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final logsAsync = ref.watch(habitLogDatesProvider(habit.id));
+
+    final streakText = logsAsync.when(
+      loading: () => '...',
+      error: (_, _) => '-',
+      data: (dates) {
+        final streak = calculateStreak(
+          completedDates: dates,
+          scheduledWeekdays: habit.scheduledWeekdays,
+          today: DateTime.now(),
+        );
+        return '🔥 $streak';
+      },
+    );
+
+    return ListTile(
+      leading: Text(habit.emoji, style: const TextStyle(fontSize: 24)),
+      title: Text(habit.name),
+      trailing: Text(streakText),
+    );
+  }
 }
