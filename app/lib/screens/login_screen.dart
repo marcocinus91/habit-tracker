@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/auth_api.dart';
 import '../state/providers.dart';
-import 'register_screen.dart';
+
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -112,13 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       : const Text('Accedi'),
                 ),
                 TextButton(
-                  onPressed: _loading
-                      ? null
-                      : () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const RegisterScreen(),
-                          ),
-                        ),
+                  onPressed: () => context.push('/register'),
                   child: const Text('Non hai un account? Registrati'),
                 ),
               ],

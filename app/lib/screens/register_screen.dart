@@ -45,9 +45,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       await _storage.save(tokens);
 
-      if (!mounted) return;
       // Svuota lo stack di navigazione: dopo la registrazione non si torna indietro al login
-      Navigator.of(context).popUntil((route) => route.isFirst);
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() {
