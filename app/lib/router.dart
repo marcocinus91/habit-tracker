@@ -1,3 +1,4 @@
+import 'package:app/screens/habit_form_screen.dart';
 import 'package:app/screens/habits_screen.dart';
 import 'package:app/screens/home_shell.dart';
 import 'package:app/screens/login_screen.dart';
@@ -61,6 +62,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      GoRoute(path: '/habits/new', builder: (_, _) => const HabitFormScreen()),
     ],
   );
 });

@@ -38,6 +38,6 @@ class Habit {
   bool isScheduledOn(DateTime day) {
     if (archived) return false;
     if (formatDate(day).compareTo(startDate) < 0) return false;
-    return scheduledWeekdays.contains(day.weekday);
+    return scheduledWeekdays.isEmpty || scheduledWeekdays.contains(day.weekday);
   }
 }

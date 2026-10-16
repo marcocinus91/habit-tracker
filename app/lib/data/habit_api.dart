@@ -70,4 +70,35 @@ class HabitApi {
       );
     }
   }
+
+  Future<Habit> createHabit({
+    required String name,
+    required String emoji,
+    required String color,
+    required List<int> scheduledWeekdays,
+    required String startDate,
+  }) async {
+    final response = await _client.post(
+      '/habits',
+      body: {
+        'data': {
+          'name': name,
+          'emoji': emoji,
+          'color': color,
+          'scheduledWeekdays': scheduledWeekdays,
+          'reminderTime': null,
+          'startDate': startDate,
+        },
+      },
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+        'Errore ${response.statusCode} su ${response.request?.url}',
+      );
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    return Habit.fromJson(body['data'] as Map<String, dynamic>);
+  }
 }

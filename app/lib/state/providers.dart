@@ -113,6 +113,26 @@ class HabitsNotifier extends AsyncNotifier<List<Habit>> {
     if (!isLoggedIn) return [];
     return ref.read(habitApiProvider).fetchHabits();
   }
+
+  Future<Habit> create({
+    required String name,
+    required String emoji,
+    required String color,
+    required List<int> scheduledWeekdays,
+    required String startDate,
+  }) async {
+    final created = await ref
+        .read(habitApiProvider)
+        .createHabit(
+          name: name,
+          emoji: emoji,
+          color: color,
+          scheduledWeekdays: scheduledWeekdays,
+          startDate: startDate,
+        );
+    state = AsyncData([...state.value ?? [], created]);
+    return created;
+  }
 }
 
 final habitsProvider = AsyncNotifierProvider<HabitsNotifier, List<Habit>>(
