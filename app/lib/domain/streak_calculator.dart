@@ -1,3 +1,5 @@
+import 'package:app/domain/date_format.dart';
+
 int calculateStreak({
   required List<String> completedDates,
   required List<int> scheduledWeekdays,
@@ -13,7 +15,7 @@ int calculateStreak({
         scheduledWeekdays.isEmpty || scheduledWeekdays.contains(cursor.weekday);
 
     if (isScheduled) {
-      final key = _formatDate(cursor);
+      final key = formatDate(cursor);
       if (completedSet.contains(key)) {
         streak++;
         isFirstScheduledDay = false;
@@ -24,16 +26,8 @@ int calculateStreak({
       }
     }
 
-    cursor = cursor.subtract(const Duration(days: 1));
+    cursor = DateTime(cursor.year, cursor.month, cursor.day - 1);
   }
 
   return streak;
-}
-
-String _formatDate(DateTime date) {
-  final y = date.year.toString().padLeft(4, '0');
-  final m = date.month.toString().padLeft(2, '0');
-  final d = date.day.toString().padLeft(2, '0');
-
-  return '$y-$m-$d';
 }

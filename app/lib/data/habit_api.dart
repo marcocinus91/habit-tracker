@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:app/data/api_client.dart';
-
 import '../domain/habit.dart';
+import '../domain/habit_log.dart';
+import 'api_client.dart';
 
 class HabitApi {
   final ApiClient _client;
@@ -22,7 +22,7 @@ class HabitApi {
     return list.map((e) => Habit.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<List<String>> fetchLogDates(String habitId) async {
+  Future<List<HabitLog>> fetchLogs(String habitId) async {
     final response = await _client.get('/habit-logs?habit=$habitId');
 
     if (response.statusCode != 200) {
@@ -34,7 +34,40 @@ class HabitApi {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
     final list = body['data'] as List;
     return list
-        .map((e) => (e as Map<String, dynamic>)['date'] as String)
+        .map((e) => HabitLog.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<HabitLog?> createLog(String habitId, String date) async {
+    final response = await _client.post(
+      '/habit-logs',
+      body: {
+        'data': {'habit': habitId, 'date': date},
+      },
+    );
+
+    if (response.statusCode == 409) return null;
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+        'Errore ${response.statusCode} su ${response.request?.url}',
+      );
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = body['data'];
+
+    final json = (data is List ? data.first : data) as Map<String, dynamic>;
+    return HabitLog.fromJson(json);
+  }
+
+  Future<void> deleteLog(String logId) async {
+    final response = await _client.delete('/habit-logs/$logId');
+
+    if (response.statusCode == 404) return;
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(
+        'Errore ${response.statusCode} su ${response.request?.url}',
+      );
+    }
   }
 }

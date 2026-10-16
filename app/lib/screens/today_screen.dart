@@ -1,9 +1,11 @@
-import 'package:app/domain/streak_calculator.dart';
-import 'package:app/state/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../domain/date_format.dart';
 import '../domain/habit.dart';
+import '../domain/habit_log.dart';
+import '../domain/streak_calculator.dart';
+import '../state/providers.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -29,14 +31,24 @@ class TodayScreen extends ConsumerWidget {
             );
           }
 
+          final now = DateTime.now();
+          final todayHabits = habits
+              .where((h) => h.isScheduledOn(now))
+              .toList();
+
+          if (todayHabits.isEmpty) {
+            return const Center(child: Text('Niente in programma per oggi.'));
+          }
+
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(habitLogDatesProvider);
+              ref.invalidate(habitLogsProvider);
               await ref.refresh(habitsProvider.future);
             },
             child: ListView.builder(
-              itemCount: habits.length,
-              itemBuilder: (context, index) => _HabitTile(habit: habits[index]),
+              itemCount: todayHabits.length,
+              itemBuilder: (context, index) =>
+                  _HabitTile(habit: todayHabits[index]),
             ),
           );
         },
@@ -49,27 +61,49 @@ class _HabitTile extends ConsumerWidget {
   final Habit habit;
   const _HabitTile({required this.habit});
 
+  Future<void> _toggle(
+    BuildContext context,
+    WidgetRef ref,
+    HabitLog? todayLog,
+    String today,
+  ) async {
+    final notifier = ref.read(habitLogsProvider(habit.id).notifier);
+    try {
+      if (todayLog == null) {
+        await notifier.check(today);
+      } else {
+        await notifier.uncheck(todayLog);
+      }
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Operazione non riuscita, riprova.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final logsAsync = ref.watch(habitLogDatesProvider(habit.id));
+    final logsAsync = ref.watch(habitLogsProvider(habit.id));
+    final logs = logsAsync.value; // null finché non ci sono dati
+    final today = formatDate(DateTime.now());
+    final todayLog = logs?.where((l) => l.date == today).firstOrNull;
 
-    final streakText = logsAsync.when(
-      loading: () => '...',
-      error: (_, _) => '-',
-      data: (dates) {
-        final streak = calculateStreak(
-          completedDates: dates,
-          scheduledWeekdays: habit.scheduledWeekdays,
-          today: DateTime.now(),
-        );
-        return '🔥 $streak';
-      },
-    );
+    final streakText = logs == null
+        ? (logsAsync.hasError ? '-' : '...')
+        : '🔥 ${calculateStreak(completedDates: logs.map((l) => l.date).toList(), scheduledWeekdays: habit.scheduledWeekdays, today: DateTime.now())}';
 
     return ListTile(
       leading: Text(habit.emoji, style: const TextStyle(fontSize: 24)),
       title: Text(habit.name),
-      trailing: Text(streakText),
+      subtitle: Text(streakText),
+      trailing: Checkbox(
+        value: todayLog != null,
+        onChanged: logs == null
+            ? null
+            : (_) => _toggle(context, ref, todayLog, today),
+      ),
+      onTap: logs == null ? null : () => _toggle(context, ref, todayLog, today),
     );
   }
 }

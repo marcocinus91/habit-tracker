@@ -1,10 +1,11 @@
-import 'package:app/domain/habit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/api_client.dart';
 import '../data/auth_api.dart';
 import '../data/habit_api.dart';
 import '../data/token_storage.dart';
+import '../domain/habit.dart';
+import '../domain/habit_log.dart';
 
 final tokenStorageProvider = Provider((ref) => TokenStorage());
 final authApiProvider = Provider((ref) => AuthApi());
@@ -100,6 +101,7 @@ final habitApiProvider = Provider(
   (ref) => HabitApi(ref.watch(apiClientProvider)),
 );
 
+/// true/false: cambia solo a login/logout, non a ogni rinnovo del token.
 final isLoggedInProvider = Provider<bool>(
   (ref) => ref.watch(authProvider.select((s) => s.value != null)),
 );
@@ -117,10 +119,50 @@ final habitsProvider = AsyncNotifierProvider<HabitsNotifier, List<Habit>>(
   HabitsNotifier.new,
 );
 
-final habitLogDatesProvider = FutureProvider.family<List<String>, String>((
-  ref,
-  habitId,
-) {
-  ref.watch(isLoggedInProvider);
-  return ref.read(habitApiProvider).fetchLogDates(habitId);
-});
+const _pendingId = 'pending';
+
+class HabitLogsNotifier extends AsyncNotifier<List<HabitLog>> {
+  HabitLogsNotifier(this.habitId);
+  final String habitId;
+
+  @override
+  Future<List<HabitLog>> build() async {
+    ref.watch(isLoggedInProvider);
+    return ref.read(habitApiProvider).fetchLogs(habitId);
+  }
+
+  Future<void> check(String date) async {
+    final previous = state.value ?? [];
+    state = AsyncData([...previous, HabitLog(id: _pendingId, date: date)]);
+
+    try {
+      final created = await ref.read(habitApiProvider).createLog(habitId, date);
+      if (created == null) {
+        ref.invalidateSelf(); // 409: già fatto, ricarico per avere il suo id
+        return;
+      }
+      state = AsyncData([...previous, created]);
+    } catch (_) {
+      state = AsyncData(previous); // rollback
+      rethrow;
+    }
+  }
+
+  Future<void> uncheck(HabitLog log) async {
+    if (log.id == _pendingId) return; // creazione ancora in corso
+    final previous = state.value ?? [];
+    state = AsyncData(previous.where((l) => l.id != log.id).toList());
+
+    try {
+      await ref.read(habitApiProvider).deleteLog(log.id);
+    } catch (_) {
+      state = AsyncData(previous); // rollback
+      rethrow;
+    }
+  }
+}
+
+final habitLogsProvider =
+    AsyncNotifierProvider.family<HabitLogsNotifier, List<HabitLog>, String>(
+      HabitLogsNotifier.new,
+    );

@@ -1,3 +1,5 @@
+import 'package:app/domain/date_format.dart';
+
 class Habit {
   final String id;
   final String name;
@@ -31,5 +33,11 @@ class Habit {
       startDate: json['startDate'] as String,
       archived: (json['archived'] as bool?) ?? false,
     );
+  }
+
+  bool isScheduledOn(DateTime day) {
+    if (archived) return false;
+    if (formatDate(day).compareTo(startDate) < 0) return false;
+    return scheduledWeekdays.contains(day.weekday);
   }
 }

@@ -54,5 +54,14 @@ void main() {
       );
       expect(streak, 2);
     });
+
+    test('lo streak attraversa il cambio ora legale', () {
+      final streak = calculateStreak(
+        completedDates: ['2026-03-30', '2026-03-29', '2026-03-28'],
+        scheduledWeekdays: [],
+        today: DateTime(2026, 3, 30),
+      );
+      expect(streak, 3);
+    });
   });
 }
